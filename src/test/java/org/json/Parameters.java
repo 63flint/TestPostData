@@ -18,8 +18,8 @@ public class Parameters {
     public String getHobby(){
         return obj.getString("hobby");
     }
-    public int getPhone(){
-        return obj.getInt("phone");
+    public String getPhone(){
+        return obj.getString("phone");
     }
 
 

@@ -1,14 +1,18 @@
 package org.json;
+import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
 import io.restassured.RestAssured;
 import io.restassured.RestAssured.*;
+import io.restassured.builder.RequestSpecBuilder;
+import io.restassured.config.DecoderConfig;
+import io.restassured.config.EncoderConfig;
 import io.restassured.http.ContentType;
 import io.restassured.matcher.RestAssuredMatchers.*;
 import io.restassured.response.Response;
+import io.restassured.specification.RequestSpecification;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.testng.Assert;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Listeners;
-import org.testng.annotations.Test;
+import org.testng.annotations.*;
 
 
 import java.io.*;
@@ -16,7 +20,20 @@ import java.io.*;
 import java.util.*;
 
 public class APITests extends JSONObject{
-    String urlPost = "http://users.bugred.ru/tasks/rest/createuser";
+    static private final String urlPost = "http://users.bugred.ru/tasks/rest/createuser";
+    private RequestSpecification requestSpecification;
+
+
+    @BeforeClass
+    public void setUp(){
+        requestSpecification = new RequestSpecBuilder()
+                .setBaseUri(urlPost)
+                .setContentType(ContentType.JSON)
+                .build();
+
+         RestAssured.config = RestAssured.config().decoderConfig(DecoderConfig.decoderConfig().defaultContentCharset("UTF-8"));
+    }
+
 
 
     @Test(dataProvider = "data" )
@@ -32,10 +49,14 @@ public class APITests extends JSONObject{
 
 
         // Отправить Post запрос
-        Response response = RestAssured.given().contentType(ContentType.JSON).body(ter).post(urlPost);
+        Response response = RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(ter)
+                .post(urlPost);
+
         Parameters ar = new Parameters(response.asString());
 
-        System.out.println( "Send: " + ter );
+        System.out.println("Send: " + ter );
         System.out.println("Response:" + response.asString());
         System.out.println("status code: " + response.getStatusCode());
         System.out.println("Body:" + response.getBody().asString());
@@ -44,9 +65,51 @@ public class APITests extends JSONObject{
         Assert.assertEquals(ar.getName(), er.getName());
         Assert.assertEquals(ar.getEMAIL(), er.getEMAIL());
         Assert.assertEquals(ar.getHobby(), er.getHobby());
-//        Assert.assertEquals(ar.getPhone(), er.getPhone());
+        Assert.assertEquals(ar.getPhone(), er.getPhone());
+    }
+
+    @Test
+    @Step
+    public void AllureTest(){
+        // Отправить Post запрос
+        try {
+            File jsonData = new File("src/test/resources/TestData.json");
+            Response response = RestAssured.given()
+                    .spec(requestSpecification)
+                    .body(jsonData)
+                    .when()
+                    .post()
+                    .then()
+                    .log()
+                    .all()
+                    .statusCode(200)
+                    .extract()
+                    .response();
+
+
+            System.out.println(response.body().asString());
+//            Allure.getLifecycle().updateTestCase((t) -> {
+//                t.setStatusDetails(t.getStatusDetails().setMessage(response.body().asString()));
+//            });
+
+//            String str = response.body().asString();
+//            System.out.println(StringEscapeUtils.unescapeJava(str));
+
+
+
+        }
+        catch (AssertionError e){
+            e.printStackTrace();
+//            Allure.description("Все норм");
+//            Allure.getLifecycle().updateTestCase((t) -> {
+//                t.setStatusDetails( t.getStatusDetails().setMessage("blablablabl"));
+//            });
+        }
+
+
 
     }
+
 
     @DataProvider( name = "data" )
     public Object[][] getData() {
